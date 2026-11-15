@@ -1,0 +1,7 @@
+﻿  Main.cpp
+  People.cpp
+  Seats.cpp
+C:\Users\Ognjen\Desktop\FTN\VII semestar\Racunarska grafika\projekat\Kostur\Source\Seats.cpp(194,24): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+C:\Users\Ognjen\Desktop\FTN\VII semestar\Racunarska grafika\projekat\Kostur\Source\Seats.cpp(195,24): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  Generating Code...
+  Kostur.vcxproj -> C:\Users\Ognjen\Desktop\FTN\VII semestar\Racunarska grafika\projekat\Kostur\x64\Debug\Kostur.exe

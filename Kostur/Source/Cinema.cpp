@@ -32,7 +32,7 @@ void addRectangle(
     }
 }
 
-// INICIJALIZACIJA BIOSKOPSKE SALE
+// Inicijalizacija bioskopske sale i providnog sloja
 void initCinema()
 {
     // Ukupno 7 pravougaonika:
@@ -75,7 +75,6 @@ void initCinema()
         0.75f, 0.35f, 0.15f, 1.0f);
 
     // 6 - Tamnosivi sloj preko celog ekrana
-    // Alpha = 0.5f prema specifikaciji
     addRectangle(verticesCinema, 6,
         -1.0f, 1.0f, -1.0f, 1.0f,
         0.20f, 0.20f, 0.20f, 0.5f);
@@ -111,7 +110,7 @@ void initCinema()
 }
 
 
-// ISCRTAVANJE ZIDOVA I VRATA
+// Iscrtavanje zidova i vrata
 void drawCinema(unsigned int shader, bool doorOpen)
 {
     glUseProgram(shader);
@@ -137,7 +136,7 @@ void drawCinema(unsigned int shader, bool doorOpen)
 }
 
 
-// TAMNOSIVI PROVIDNI SLOJ
+// Tamnosivi providni sloj preko celog ekrana
 void drawCinemaOverlay(unsigned int shader)
 {
     glUseProgram(shader);

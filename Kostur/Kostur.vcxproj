@@ -128,12 +128,14 @@
     <ClCompile Include="Source\Main.cpp" />
     <ClCompile Include="Source\People.cpp" />
     <ClCompile Include="Source\Seats.cpp" />
+    <ClCompile Include="Source\Signature.cpp" />
     <ClCompile Include="Source\Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\Cinema.h" />
     <ClInclude Include="Header\People.h" />
     <ClInclude Include="Header\Seats.h" />
+    <ClInclude Include="Header\Signature.h" />
     <ClInclude Include="Header\stb_image.h" />
     <ClInclude Include="Header\Util.h" />
   </ItemGroup>
@@ -143,9 +145,12 @@
     <None Include="Shaders\basic.vert" />
     <None Include="Shaders\people.frag" />
     <None Include="Shaders\people.vert" />
+    <None Include="Shaders\screen.frag" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="Resources\camera_cursor_64.png" />
     <Image Include="Resources\person.png" />
+    <Image Include="Resources\signature.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -30,10 +30,30 @@ int seatStatus[SEAT_ROWS][SEAT_COLS] = {};
 // 3 - Izlazak gledalaca
 int cinemaPhase = 0;
 
-// Funkcija pomocu koje Main.cpp proverava fazu
+// Funkcija pomocu koje se proverava fazа
 int getCinemaPhase()
 {
     return cinemaPhase;
+}
+
+// Pocetak projekcije filma
+void startProjection()
+{
+    // Projekcija pocinje tek nakon ulaska svih gledalaca
+    if (cinemaPhase == 1)
+    {
+        cinemaPhase = 2;
+    }
+}
+
+// Zavrsetak projekcije filma
+void finishProjection()
+{
+    // Iz faze projekcije prelazimo u fazu izlaska
+    if (cinemaPhase == 2)
+    {
+        cinemaPhase = 3;
+    }
 }
 
 // VAO i VBO za plava sedista
@@ -50,7 +70,7 @@ unsigned int VBOseatRed;
 
 
 
-// KREIRANJE GEOMETRIJE JEDNOG SEDISTA
+// Kreiranje geometrije jednog sedista
 void createSeatVAO(float r, float g, float b,
     unsigned int& VAO, unsigned int& VBO)
 {
@@ -93,7 +113,7 @@ void createSeatVAO(float r, float g, float b,
 }
 
 
-// INICIJALIZACIJA SEDISTA
+// Inicijalizacija sedista
 void initSeats()
 {
     // Sva sedista su na pocetku slobodna
@@ -125,7 +145,7 @@ void initSeats()
 }
 
 
-// ISCRTAVANJE SVIH SEDISTA
+// Iscrtavanje svih sedista u bioskopu
 void drawSeats(unsigned int shader)
 {
     glUseProgram(shader);
@@ -165,7 +185,7 @@ void drawSeats(unsigned int shader)
 }
 
 
-// REZERVACIJA SEDISTA KLIKOM MISA
+// Rezervacija sedista klikom misa
 void seatMouseCallback(GLFWwindow* window,
     int button, int action, int mods)
 {
@@ -235,7 +255,7 @@ void seatMouseCallback(GLFWwindow* window,
 }
 
 
-// KUPOVINA N SUSEDNIH SEDISTA
+// Kupovina N sedista klikom tastera 1-9
 void buySeats(int count)
 {
 
@@ -272,17 +292,14 @@ void buySeats(int count)
                     seatStatus[row][col - i] = 2;
                 }
 
-                // Kupovina je zavrsena
+               
                 return;
             }
         }
     }
-
-    // Ako ne postoji grupa slobodnih sedista,
-    // ne menja se nijedno sediste.
 }
 
-// OBRADA TASTATURE
+// Obrada pritiska tastera/tastature
 void seatKeyCallback(GLFWwindow* window,
     int key, int scancode,
     int action, int mods)
@@ -315,12 +332,11 @@ void seatKeyCallback(GLFWwindow* window,
         // Broj karata koji kupujemo
         int count = key - GLFW_KEY_0;
 
-        // Poziv postojece funkcije za kupovinu
         buySeats(count);
     }
 }
 
-// CITANJE STATUSA SEDISTA
+// Pronalazak statusa sedista
 int getSeatStatus(int row, int col)
 {
     if (row < 0 || row >= SEAT_ROWS ||
@@ -332,7 +348,6 @@ int getSeatStatus(int row, int col)
     return seatStatus[row][col];
 }
 
-// KOORDINATE SEDISTA
 float getSeatX(int col)
 {
     return START_X + col * SEAT_SPACING_X;
@@ -341,4 +356,24 @@ float getSeatX(int col)
 float getSeatY(int row)
 {
     return START_Y - row * SEAT_SPACING_Y;
+}
+
+// Resetovanje stanja bioskopa
+void resetCinemaSession()
+{
+    // Reset dozvoljavamo samo nakon projekcije
+    if (cinemaPhase != 3)
+    {
+        return;
+    }
+
+    // Sva sedista ponovo postaju slobodna
+    for (int row = 0; row < SEAT_ROWS; row++)
+    {
+        for (int col = 0; col < SEAT_COLS; col++)
+        {
+            seatStatus[row][col] = 0;
+        }
+    }
+    cinemaPhase = 0;
 }

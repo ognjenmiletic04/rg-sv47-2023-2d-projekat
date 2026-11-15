@@ -30,6 +30,9 @@
     <ClCompile Include="Source\People.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Signature.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Header\stb_image.h">
@@ -47,6 +50,9 @@
     <ClInclude Include="Header\People.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Header\Signature.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -54,9 +60,16 @@
     <None Include="Shaders\basic.frag" />
     <None Include="Shaders\people.vert" />
     <None Include="Shaders\people.frag" />
+    <None Include="Shaders\screen.frag" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Resources\person.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\camera_cursor_64.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Resources\signature.png">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

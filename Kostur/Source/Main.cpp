@@ -6,7 +6,8 @@
 #include "../Header/Seats.h"
 #include "../Header/Cinema.h"
 #include "../Header/People.h"
-
+#include "../Header/Signature.h"
+#include <cstdlib>
 
 int main()
 {
@@ -20,7 +21,7 @@ int main()
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
-    // Kreiranje prozora preko celog ekrana
+	// Fullscreen
     GLFWwindow* window = glfwCreateWindow(
         mode->width,
         mode->height,
@@ -42,7 +43,7 @@ int main()
     if (glewInit() != GLEW_OK)
         return endProgram("GLEW nije uspeo da se inicijalizuje.");
 
-    // Omogucavanje providnosti
+    // Providnost
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -56,6 +57,13 @@ int main()
     unsigned int peopleShader = createShader(
         "Shaders/people.vert",
         "Shaders/people.frag"
+    );
+
+
+    // Sejder za promenu boje bioskopskog platna
+    unsigned int screenShader = createShader(
+        "Shaders/basic.vert",
+        "Shaders/screen.frag"
     );
 
     // Temena bioskopskog platna
@@ -107,17 +115,45 @@ int main()
 	// Inicijalizacija gledalaca
 	initPeople();
 
+    // Inicijalizacija potpisa
+    initSignature();
+
     // Povezivanje klika misa sa rezervacijom sedista
     glfwSetMouseButtonCallback(window, seatMouseCallback);
 
     // Povezivanje tastature sa kupovinom karata
     glfwSetKeyCallback(window, seatKeyCallback);
 
+	// Postavljanje kursora u obliku kamere
+    GLFWcursor* cinemaCursor =
+        loadImageToCursor("Resources/camera_cursor_64.png");
+
+    glfwSetInputMode(
+        window,
+        GLFW_CURSOR,
+        GLFW_CURSOR_NORMAL
+    );
+
+    if (cinemaCursor != NULL)
+    {
+        glfwSetCursor(window, cinemaCursor);
+    }
+
     // Tamna pozadina
     glClearColor(0.10f, 0.10f, 0.15f, 1.0f);
 
-    // Da li je izvrsena dodela sedista gledaocima?
     bool peoplePrepared = false;
+
+    // Pocetak projekcije
+    double projectionStartTime = -1.0;
+
+    // Brojac frejmova
+    int projectionFrameCounter = 0;
+
+    // Pocetna boja platna je bela
+    float screenR = 1.0f;
+    float screenG = 1.0f;
+    float screenB = 1.0f;
 
     // Vreme prethodnog frejma za animaciju
     double previousFrameTime = glfwGetTime();
@@ -146,28 +182,114 @@ int main()
             peoplePrepared = true;
         }
 
-        // Azuriranje kretanja gledalaca
+        // Pocinje kretanje gledalaca
         if (getCinemaPhase() == 1)
         {
             updatePeople(deltaTime);
+
+            // Pocinje projekcija filma
+            if (allPeopleSeated())
+            {
+                startProjection();
+            }
+        }
+		// Faza projekcije
+        if (getCinemaPhase() == 2)
+        {
+            if (projectionStartTime < 0.0)
+            {
+                projectionStartTime = glfwGetTime();
+                projectionFrameCounter = 0;
+            }
+
+            // Koliko sekundi film traje
+            double elapsedProjectionTime =
+                glfwGetTime() - projectionStartTime;
+
+            // Nakon najmanje 20 sekundi zavrsavamo film
+            if (elapsedProjectionTime >= 20.0)
+            {
+                // Platno ponovo postaje belo
+                screenR = 1.0f;
+                screenG = 1.0f;
+                screenB = 1.0f;
+
+                // Faza izlaska iz sale
+                finishProjection();
+            }
+            else
+            {
+                // Menjamo boju svakih 45 frejmova
+                if (projectionFrameCounter % 45 == 0)
+                {
+                    // Nasumicne RGB komponente
+                    screenR =
+                        0.30f + (std::rand() % 61) / 100.0f;
+
+                    screenG =
+                        0.30f + (std::rand() % 61) / 100.0f;
+
+                    screenB =
+                        0.30f + (std::rand() % 61) / 100.0f;
+                }
+
+                // Brojanje frejmova projekcije
+                projectionFrameCounter++;
+            }
+        }
+        // Faza izlaska iz sale
+        if (getCinemaPhase() == 3)
+        {
+            // Animacija izlaska gledalaca
+            updatePeopleExit(deltaTime);
+
+            
+            if (allPeopleExited())
+            {
+                // Resetujemo statuse sedista i fazu
+                resetCinemaSession();
+
+                // Omogucavamo novu pripremu gledalaca
+                peoplePrepared = false;
+
+                // Resetujemo podatke za novu projekciju
+                projectionStartTime = -1.0;
+                projectionFrameCounter = 0;
+
+                // Platno ponovo postaje belo
+                screenR = 1.0f;
+                screenG = 1.0f;
+                screenB = 1.0f;
+            }
         }
 
         // Brisanje prethodnog frejma
         glClear(GL_COLOR_BUFFER_BIT);
 
         // 1. Zidovi i zatvorena vrata
-        // Vrata su otvorena kada simulacija pocne
-        drawCinema(basicShader, getCinemaPhase() != 0);
+        // Vrata su otvorena tokom ulaska i izlaska
+        drawCinema(
+            basicShader,
+            getCinemaPhase() == 1 ||
+            getCinemaPhase() == 3
+        );
 
 
         // 2. Bioskopsko platno
-        glUseProgram(basicShader);
+        // Koristimo poseban sejder za platno
+        glUseProgram(screenShader);
 
         glUniform2f(
-            glGetUniformLocation(basicShader, "uPos"),
+            glGetUniformLocation(screenShader, "uPos"),
             0.0f, 0.78f
         );
+     
+        glUniform3f(
+            glGetUniformLocation(screenShader, "uScreenColor"),
+            screenR, screenG, screenB
+        );
 
+        // Iscrtavanje postojeceg pravougaonika
         glBindVertexArray(VAOscreen);
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
@@ -176,7 +298,9 @@ int main()
 
         // 4. Gledalac se pojavljuje nakon pritiska na Enter
         // Prikaz gledaoca sa PNG teksturom
-        if (getCinemaPhase() == 1)
+        if (getCinemaPhase() == 1 ||
+            getCinemaPhase() == 2 ||
+            getCinemaPhase() == 3)
         {
             drawPeople(peopleShader);
         }
@@ -186,6 +310,7 @@ int main()
         {
             drawCinemaOverlay(basicShader);
         }
+        drawSignature(peopleShader);
 
         // Prikaz frejma
         glfwSwapBuffers(window);
@@ -196,10 +321,17 @@ int main()
         while (glfwGetTime() - initFrameTime < 1 / 75.0) {}
     }
 
-    // Oslobadjanje resursa
+    // Oslobadjanje zauzetih resursa
+
     glDeleteProgram(basicShader);
     glDeleteProgram(peopleShader);
-
+    glDeleteProgram(screenShader);
+    if (cinemaCursor != NULL)
+    {
+        glfwSetCursor(window, NULL);
+        glfwDestroyCursor(cinemaCursor);
+    }
+    deleteSignature();
     glfwDestroyWindow(window);
     glfwTerminate();
 

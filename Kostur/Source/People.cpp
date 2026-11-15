@@ -16,7 +16,7 @@ unsigned int VBOperson;
 // PNG tekstura gledaoca
 unsigned int personTexture;
 
-// Maksimalno 50 gledalaca, jer imamo 50 sedista
+// Maksimalno 50 gledalaca, jer ima 50 sedista
 const int MAX_PEOPLE = 50;
 
 // Koliko gledalaca ulazi u salu
@@ -43,7 +43,16 @@ const float ENTRY_DELAY = 0.40f;
 // Vreme proteklo od pocetka ulaska
 float peopleElapsed = 0.0f;
 
-// INICIJALIZACIJA TEKSTURE GLEDAOCA
+// Vreme proteklo od pocetka izlaska
+float exitElapsed = 0.0f;
+
+// Razmak izmedju pocetaka izlaska gledalaca
+const float EXIT_DELAY = 0.40f;
+
+// Pojedinacni gledaoci koji su napustili salu
+bool personExited[MAX_PEOPLE] = {};
+
+// Inicijalizacija teksture gledaoca
 void initPeople()
 {
     // Jedan pravougaonik sa UV koordinatama
@@ -93,7 +102,7 @@ void initPeople()
     );
     glEnableVertexAttribArray(2);
 
-    // Ucitavanje slike iz Resources foldera
+    // Ucitavanje slike
     personTexture = loadImageToTexture("Resources/person.png");
 
     // Podesavanje teksture
@@ -118,13 +127,14 @@ void initPeople()
 }
 
 
-// NASUMICAN BROJ GLEDALACA
-// I DODELA JEDINSTVENIH SEDISTA
+// Odredjujemo nasumicni broj gledalaca i dodeljujemo im sedista
 void preparePeople()
 {
 
     // Resetovanje vremena animacije
     peopleElapsed = 0.0f;
+    // Resetovanje vremena izlaska
+    exitElapsed = 0.0f;
     int candidateRows[MAX_PEOPLE];
     int candidateCols[MAX_PEOPLE];
 
@@ -153,8 +163,8 @@ void preparePeople()
         (unsigned int)(glfwGetTime() * 1000000.0)
     );
 
-    // Nasumican broj od 0 do candidateCount
-    peopleCount = std::rand() % (candidateCount + 1);
+    // Nasumican broj od 1 do candidateCount 
+    peopleCount = std::rand() % candidateCount + 1;
 
     std::cout << "--------------------------------\n";
     std::cout << "Rezervisanih i kupljenih sedista: "
@@ -187,7 +197,10 @@ void preparePeople()
         personX[i] = PEOPLE_START_X;
         personY[i] = PEOPLE_START_Y;
 
-        // Ispis radi provere
+        // Gledalac jos nije napustio salu
+        personExited[i] = false;
+
+		// Ispis u konzoli koji gledalac ide na koje sediste
         std::cout << "Gledalac " << i + 1
             << " -> red " << personTargetRow[i] + 1
             << ", sediste " << personTargetCol[i] + 1
@@ -198,13 +211,13 @@ void preparePeople()
         << std::endl;
 }
 
-// BROJ GLEDALACA
+// Broj gledalaca
 int getPeopleCount()
 {
     return peopleCount;
 }
 
-// ANIMACIJA KRETANJA GLEDALACA
+// Animacija kretanja gledalaca ka njihovim sedistima
 void updatePeople(float deltaTime)
 {
     // Protok vremena od pocetka ulaska
@@ -226,7 +239,7 @@ void updatePeople(float deltaTime)
         // Put koji gledalac moze preci tokom frejma
         float step = PEOPLE_SPEED * deltaTime;
 
-        // 1. VERTIKALNO KRETANJE
+        // 1. Prvo vertikalno kretanje nanize
         if (personY[i] > targetY)
         {
             float distanceY = personY[i] - targetY;
@@ -247,9 +260,7 @@ void updatePeople(float deltaTime)
             }
         }
 
-        // 2. HORIZONTALNO KRETANJE
-        // Horizontalno kretanje pocinje tek
-        // kada gledalac stigne do svog reda
+        // 2. Zatim horizontalno kretanje
         if (personY[i] <= targetY &&
             personX[i] < targetX &&
             step > 0.0f)
@@ -265,10 +276,30 @@ void updatePeople(float deltaTime)
     }
 }
 
-// ISCRTAVANJE GLEDAOCA SA PNG TEKSTUROM
+// Provera da li su svi gledaoci stigli do sedista
+bool allPeopleSeated()
+{
+    // Proveravamo svakog gledaoca
+    for (int i = 0; i < peopleCount; i++)
+    {
+        // Koordinate dodeljenog sedista
+        float targetX = getSeatX(personTargetCol[i]);
+        float targetY = getSeatY(personTargetRow[i]);
+
+        if (personY[i] > targetY ||
+            personX[i] < targetX)
+        {
+            return false;
+        }
+    }
+
+    // Svi gledaoci su stigli
+    return true;
+}
+
+// Iscrtavanje gledalaca kao PNG teksture
 void drawPeople(unsigned int shader)
 {
-    // Ako nema gledalaca ili teksture
     if (peopleCount == 0 || personTexture == 0)
     {
         return;
@@ -290,11 +321,16 @@ void drawPeople(unsigned int shader)
     int posLocation =
         glGetUniformLocation(shader, "uPos");
 
-    // Iscrtavamo sve gledaoce koji su poceli da ulaze
     for (int i = 0; i < peopleCount; i++)
     {
-        // Gledalac jos nije krenuo od ulaza
+        // Gledalac jos nije poceo da ulazi
         if (peopleElapsed < i * ENTRY_DELAY)
+        {
+            continue;
+        }
+
+        // Gledalac je napustio bioskop
+        if (getCinemaPhase() == 3 && personExited[i])
         {
             continue;
         }
@@ -306,7 +342,98 @@ void drawPeople(unsigned int shader)
             personY[i]
         );
 
-        // Crtanje PNG slike gledaoca
+        // Crtanje teksturiranog gledaoca
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     }
+}
+
+// Animacija kretanja gledalaca ka izlazu iz sale
+void updatePeopleExit(float deltaTime)
+{
+    // Vreme od pocetka izlaska
+    exitElapsed += deltaTime;
+
+    // Azuriramo svakog gledaoca
+    for (int i = 0; i < peopleCount; i++)
+    {
+        // Gledalac je vec izasao
+        if (personExited[i])
+        {
+            continue;
+        }
+
+        // Gledaoci ne krecu svi istovremeno
+        if (exitElapsed < i * EXIT_DELAY)
+        {
+            continue;
+        }
+
+        // Put koji gledalac predje u jednom frejmu
+        float step = PEOPLE_SPEED * deltaTime;
+
+        // 1. Prvo horizontalno kretanje ulevo
+        if (personX[i] > PEOPLE_START_X)
+        {
+            float distanceX =
+                personX[i] - PEOPLE_START_X;
+
+            if (step >= distanceX)
+            {
+                // Stigao je do prolaza
+                personX[i] = PEOPLE_START_X;
+
+                // Preostalo kretanje u ovom frejmu
+                step -= distanceX;
+            }
+            else
+            {
+                // Nastavlja ulevo
+                personX[i] -= step;
+                step = 0.0f;
+            }
+        }
+
+		// 2. Zatim vertikalno kretanje nagore
+        if (personX[i] <= PEOPLE_START_X &&
+            personY[i] < PEOPLE_START_Y &&
+            step > 0.0f)
+        {
+            float distanceY =
+                PEOPLE_START_Y - personY[i];
+
+            if (step >= distanceY)
+            {
+                // Stigao je do ulaza
+                personY[i] = PEOPLE_START_Y;
+            }
+            else
+            {
+                // Nastavlja nagore
+                personY[i] += step;
+            }
+        }
+
+		// 3. Provera da li je gledalac izasao iz sale
+        if (personX[i] <= PEOPLE_START_X &&
+            personY[i] >= PEOPLE_START_Y)
+        {
+            personExited[i] = true;
+        }
+    }
+}
+
+// Provera da li su svi gledaoci napustili salu
+bool allPeopleExited()
+{
+    for (int i = 0; i < peopleCount; i++)
+    {
+        // Ako makar jedan jos nije izasao
+        if (!personExited[i])
+        {
+            return false;
+        }
+    }
+
+    // Svi gledaoci su izasli
+    return true;
 }

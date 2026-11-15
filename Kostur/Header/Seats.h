@@ -21,9 +21,17 @@ int getCinemaPhase();
 // Vraca status sedista na zadatoj poziciji
 int getSeatStatus(int row, int col);
 
-
 // Vraca X koordinatu centra sedista
 float getSeatX(int col);
 
 // Vraca Y koordinatu centra sedista
 float getSeatY(int row);
+
+// Zavrsava ulazak gledalaca i zapocinje projekciju
+void startProjection();
+
+// Zavrsava projekciju i zapocinje fazu izlaska
+void finishProjection();
+
+// Vraca bioskop u pocetno stanje
+void resetCinemaSession();
